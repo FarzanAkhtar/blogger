@@ -1,40 +1,45 @@
 import createDataContext from './createDataContext';
+import jsonserver from '../api/jsonserver';
 
 const blogReducer = (state, action) => {
   switch (action.type) {
-    case 'add_blogPost':
-      return [
-        ...state,
-        {
-          id: Math.floor(Math.random() * 999999),
-          title: action.payload.title,
-          content: action.payload.content
-        }
-      ];
     case 'delete_blogPost':
       return state.filter(blogPost => blogPost.id !== action.payload);
     case 'edit_blogPost':
       return state.map(blogPost => {
         return blogPost.id === action.payload.id ? action.payload : blogPost;
       });
+    case 'get_blogPost':
+      return action.payload;
     default:
       return state;
   }
 };
 
+const getBlog = dispatch => {
+  return async () => {
+    const response = await jsonserver.get('/blogPosts');
+    dispatch({ type: 'get_blogPost', payload: response.data });
+  };
+};
+
 const addBlog = dispatch => {
-  return (title, content, callback) => {
-    dispatch({ type: 'add_blogPost', payload: { title, content } });
+  return async (title, content, callback) => {
+    await jsonserver.post('/blogPosts', { title, content });
     callback();
   };
 };
 
 const deleteBlog = dispatch => {
-  return id => dispatch({ type: 'delete_blogPost', payload: id });
+  return async id => {
+    await jsonserver.delete(`/blogPosts/${id}`);
+    dispatch({ type: 'delete_blogPost', payload: id });
+  };
 };
 
 const editBlog = dispatch => {
-  return (id, title, content, callback) => {
+  return async (id, title, content, callback) => {
+    await jsonserver.put(`/blogPosts/${id}`, { title, content });
     dispatch({ type: 'edit_blogPost', payload: { id, title, content } });
     callback();
   };
@@ -42,6 +47,6 @@ const editBlog = dispatch => {
 
 export const { Context, Provider } = createDataContext(
   blogReducer,
-  { addBlog, deleteBlog, editBlog },
-  [{ id: 1, title: 'Test Post', content: 'This is a test blogPost!' }]
+  { addBlog, deleteBlog, editBlog, getBlog },
+  []
 );
